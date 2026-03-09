@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Blotter — Mapa de Proceso · Facimex Valores × MatchFin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:wght@400;500;600&family=IBM+Plex+Serif:wght@300;400&display=swap"/>
+<style>
+:root{
+  --green:#1be28c;
+  --green-dark:#0d9960;
+  --bg:#ededed;
+  --surface:#f5f5f5;
+  --border:#c8c8c8;
+  --border2:#b8b8b8;
+  --text:#111111;
+  --muted:#5a6e73;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Arimo',sans-serif;letter-spacing:-.02em}
+
+header{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(237,237,237,.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:100;backdrop-filter:blur(8px)}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:26px;height:26px;flex-shrink:0}
+.logo-text{font-size:14px;font-weight:500;letter-spacing:-.02em;line-height:1.2}
+.logo-sub{font-family:'IBM Plex Serif',serif;font-size:10px;color:var(--muted);font-weight:300;font-style:italic}
+.hdr-right{display:flex;gap:8px}
+.hdr-btn{font-family:'Arimo',sans-serif;font-size:10px;font-weight:500;color:var(--muted);background:transparent;border:1px solid var(--border);padding:5px 11px;border-radius:2px;cursor:pointer;transition:.15s;text-transform:uppercase;letter-spacing:.02em}
+.hdr-btn:hover{color:var(--text);border-color:var(--border2)}
+
+.cw{position:fixed;top:52px;left:0;right:0;bottom:0;overflow:hidden;cursor:grab}
+.cw:active{cursor:grabbing}
+#cv{position:absolute;width:2600px;height:1300px;transform-origin:0 0}
+
+svg.lines{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.fl{fill:none;stroke-width:1.2;stroke-dasharray:5 4;animation:dash 20s linear infinite}
+.fl-main{stroke:rgba(13,153,96,.45)}
+.fl-exc{stroke:rgba(180,90,0,.38)}
+.fl-term{stroke:rgba(150,150,150,.3)}
+.fl-norm{stroke:rgba(160,160,160,.35)}
+@keyframes dash{to{stroke-dashoffset:-180}}
+.at{opacity:.65}
+.at-main{fill:var(--green-dark)}
+.at-exc{fill:#b85a00}
+.at-term{fill:#aaa}
+.at-norm{fill:#bbb}
+
+.sec-lbl{position:absolute;font-family:'IBM Plex Serif',serif;font-size:9px;font-style:italic;color:rgba(90,110,115,.4);text-transform:uppercase;letter-spacing:.1em;pointer-events:none;white-space:nowrap}
+.sec-div{position:absolute;top:38px;bottom:60px;width:1px;background:rgba(0,0,0,.05);pointer-events:none}
+
+.node{position:absolute;cursor:pointer;transition:transform .15s}
+.node:hover{transform:translateY(-2px)}
+.nb{border:1px solid var(--border2);border-radius:3px;padding:10px 13px;background:var(--surface);position:relative;min-width:152px;max-width:178px;transition:border-color .18s,box-shadow .18s}
+.node:hover .nb{box-shadow:0 3px 14px rgba(0,0,0,.11)}
+.nb::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:3px 3px 0 0}
+.n-tag{font-family:'IBM Plex Serif',serif;font-size:8px;font-style:italic;font-weight:300;color:var(--muted);margin-bottom:4px;letter-spacing:.04em;text-transform:uppercase}
+.n-name{font-family:'Arimo',sans-serif;font-size:12px;font-weight:600;line-height:1.25;letter-spacing:-.02em}
+.n-sub{font-family:'IBM Plex Serif',serif;font-size:9px;font-weight:300;font-style:italic;color:var(--muted);margin-top:3px;line-height:1.4}
+
+.nt-module .nb{border-color:rgba(13,153,96,.4);background:#f2fbf7}
+.nt-module .nb::before{background:var(--green-dark)}
+.nt-module .n-name{color:var(--green-dark)}
+.nt-module .n-tag{color:var(--green-dark)}
+.nt-bisagra .nb{border-color:rgba(160,120,0,.4);background:#fdf8ed}
+.nt-bisagra .nb::before{background:#a07800}
+.nt-bisagra .n-name{color:#a07800}
+.nt-control .nb{border-color:rgba(13,153,96,.28);background:#f5fbf8}
+.nt-control .nb::before{background:var(--green-dark);opacity:.4}
+.nt-control .n-name{color:var(--green-dark)}
+.nt-formal .nb{border-color:rgba(90,32,204,.28);background:#f8f5ff}
+.nt-formal .nb::before{background:#5a20cc}
+.nt-formal .n-name{color:#5a20cc}
+.nt-exception .nb{border-color:rgba(184,90,0,.32);background:#fff8f2}
+.nt-exception .nb::before{background:#b85a00}
+.nt-exception .n-name{color:#b85a00}
+.nt-terminal .nb{border-color:rgba(90,110,115,.28);background:#f4f4f4}
+.nt-terminal .nb::before{background:#aaa;opacity:.45}
+.nt-terminal .n-name{color:#5a6e73}
+.nt-normal .nb::before{background:#ccc;opacity:.4}
+
+/* PANEL */
+#panel{
+  position:fixed;right:0;top:52px;bottom:0;
+  width:430px; /* JS overrides this */
+  min-width:360px;max-width:90vw;
+  background:var(--surface);border-left:1px solid var(--border);
+  transform:translateX(100%);
+  transition:transform .28s cubic-bezier(.22,1,.36,1);
+  overflow-y:auto;z-index:90;display:flex;flex-direction:column;
+  --pfs:1;
+}
+#panel.open{transform:translateX(0)}
+/* drag handle on left edge */
+#panel-resize{
+  position:absolute;left:0;top:0;bottom:0;width:5px;
+  cursor:ew-resize;z-index:3;
+  background:transparent;
+  transition:background .15s;
+}
+#panel-resize:hover,#panel-resize.dragging{background:rgba(13,153,96,.25)}
+.ph{padding:18px 20px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2}
+.ph-type{font-family:'IBM Plex Serif',serif;font-size:10px;font-style:italic;color:var(--muted);margin-bottom:5px;letter-spacing:.06em;text-transform:uppercase}
+.ph-title{font-family:'Arimo',sans-serif;font-size:20px;font-weight:600;line-height:1.1;letter-spacing:-.03em}
+.ph-meta{display:flex;align-items:center;justify-content:space-between;margin-top:9px}
+.ph-badge{display:inline-flex;align-items:center;font-family:'Arimo',sans-serif;font-size:9px;font-weight:600;padding:3px 8px;border-radius:2px;text-transform:uppercase;letter-spacing:.04em}
+.ph-mvp{background:rgba(13,153,96,.18);color:#096b42;border:1px solid rgba(13,153,96,.35)}
+.ph-2{background:rgba(90,32,204,.12);color:#3d0fa8;border:1px solid rgba(90,32,204,.3)}
+.ph-3{background:rgba(184,90,0,.12);color:#8a4000;border:1px solid rgba(184,90,0,.3)}
+.ph-fz{display:flex;gap:3px;align-items:center}
+.ph-fz-btn{font-family:'Arimo',sans-serif;font-size:12px;font-weight:600;background:transparent;border:1px solid var(--border);color:var(--muted);width:26px;height:26px;border-radius:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+.ph-fz-btn:hover{background:var(--bg);color:var(--text);border-color:var(--border2)}
+.ph-fz-lbl{font-family:'IBM Plex Serif',serif;font-size:9px;font-style:italic;color:var(--muted);padding:0 4px;min-width:26px;text-align:center}
+.ph-close{position:absolute;top:16px;right:16px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:13px;width:26px;height:26px;border-radius:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+.ph-close:hover{color:var(--text);border-color:var(--border2)}
+
+.pb{padding:16px 20px;flex:1}
+.ps{margin-bottom:20px}
+.ps-t{font-family:'IBM Plex Serif',serif;font-style:italic;font-weight:400;font-size:calc(9px * var(--pfs));color:var(--green-dark);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(13,153,96,.22)}
+.ps-desc{font-family:'IBM Plex Serif',serif;font-weight:300;line-height:1.7;font-size:calc(13px * var(--pfs));color:#1a1a1a}
+
+.raci-table{width:100%;border-collapse:collapse;font-family:'Arimo',sans-serif}
+.raci-table th{font-size:calc(8px * var(--pfs));font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#333;padding:5px 5px;text-align:left;border-bottom:2px solid var(--border2)}
+.raci-table td{padding:5px 5px;border-bottom:1px solid rgba(0,0,0,.06);vertical-align:top;line-height:1.5;font-size:calc(10px * var(--pfs));color:#222}
+.raci-table td:first-child{color:#333;max-width:130px}
+.rb{display:inline-block;font-size:calc(8px * var(--pfs));font-weight:700;padding:2px 5px;border-radius:2px;margin-bottom:1px;text-transform:uppercase;line-height:1.5;white-space:nowrap}
+.rb-r{background:#0d9960;color:#fff}
+.rb-a{background:#b85a00;color:#fff}
+.rb-c{background:#5a20cc;color:#fff}
+.rb-i{background:#5a6e73;color:#fff}
+
+.item-list{list-style:none;display:grid;gap:4px}
+.item-list li{font-family:'Arimo',sans-serif;font-size:calc(11.5px * var(--pfs));padding:6px 10px 6px 12px;border-left:3px solid var(--border);color:#222;line-height:1.5;background:rgba(0,0,0,.02);border-radius:0 2px 2px 0}
+.il-g{border-left-color:#0d9960;color:#0a5c3a;background:rgba(13,153,96,.06)}
+.il-r{border-left-color:#b53030;color:#7a1a1a;background:rgba(181,48,48,.05)}
+.il-o{border-left-color:#b85a00;color:#6b3400;background:rgba(184,90,0,.05)}
+.il-p{border-left-color:#5a20cc;color:#32108a;background:rgba(90,32,204,.05)}
+.il-bl{border-left-color:#1a5fa8;color:#0d3d72;background:rgba(26,95,168,.05)}
+.il-n{border-left-color:var(--border2);color:#333}
+
+.tr-row{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+.tr-row:last-child{border-bottom:none}
+.tr-from{font-family:'IBM Plex Serif',serif;font-size:calc(9.5px * var(--pfs));font-style:italic;color:#555;flex-shrink:0;min-width:90px;margin-top:1px}
+.tr-arr{color:var(--green-dark);font-size:calc(13px * var(--pfs));flex-shrink:0}
+.tr-body .tr-to{font-family:'Arimo',sans-serif;font-size:calc(11.5px * var(--pfs));font-weight:600;color:#111}
+.tr-body .tr-cond{font-family:'IBM Plex Serif',serif;font-size:calc(9.5px * var(--pfs));font-style:italic;color:#666;margin-top:2px}
+
+.us-item{padding:8px 11px;border:1px solid var(--border);border-radius:2px;margin-bottom:6px;background:#fff}
+.us-code{font-family:'Arimo',sans-serif;font-size:calc(9px * var(--pfs));font-weight:700;color:#0a5c3a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.us-text{font-family:'IBM Plex Serif',serif;font-size:calc(12px * var(--pfs));font-weight:300;color:#222;line-height:1.6}
+
+.pend-item{display:flex;gap:9px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.07);align-items:flex-start}
+.pend-item:last-child{border-bottom:none}
+.pend-dot{width:7px;height:7px;border-radius:50%;background:#b85a00;flex-shrink:0;margin-top:4px}
+.pend-text{font-family:'IBM Plex Serif',serif;font-size:calc(12px * var(--pfs));font-weight:300;color:#333;line-height:1.6}
+
+#legend{position:fixed;bottom:20px;left:20px;background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:14px 16px;font-family:'Arimo',sans-serif;font-size:10px;z-index:90;min-width:185px;display:none}
+#legend.show{display:block}
+.lg-t{font-family:'IBM Plex Serif',serif;font-style:italic;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;font-size:8px;font-weight:300}
+.lg-r{display:flex;align-items:center;gap:8px;margin-bottom:5px;color:rgba(0,0,0,.62);font-size:10px}
+.lg-d{width:8px;height:8px;border-radius:1px;border:1px solid}
+.lg-l{width:20px;height:1px}
+
+.zbar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;z-index:90;background:var(--surface);border:1px solid var(--border);border-radius:2px;overflow:hidden}
+.zb{background:transparent;border:none;color:var(--muted);font-family:'Arimo',sans-serif;font-size:13px;padding:7px 14px;cursor:pointer;transition:.15s;border-right:1px solid var(--border)}
+.zb:last-child{border-right:none}
+.zb:hover{background:var(--bg);color:var(--text)}
+.zl{font-family:'IBM Plex Serif',serif;font-style:italic;font-size:10px;color:var(--muted);padding:7px 12px;border-right:1px solid var(--border)}
+
+#mm{position:fixed;bottom:20px;right:20px;width:160px;height:75px;background:rgba(237,237,237,.95);border:1px solid var(--border);border-radius:3px;overflow:hidden;z-index:90}
+.mmvp{position:absolute;border:1px solid var(--green-dark);background:rgba(13,153,96,.07);pointer-events:none;transition:.05s}
+
+#toast{position:fixed;bottom:66px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--surface);border:1px solid var(--border);padding:8px 16px;border-radius:2px;font-family:'IBM Plex Serif',serif;font-size:11px;font-style:italic;color:var(--muted);opacity:0;transition:.2s;pointer-events:none;z-index:200;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+       </div>
+    <div>
+      <div class="logo-text">MatchFin | Facimex</div>
+        </div>
+  </div>
+  <div class="hdr-right">
+    <button class="hdr-btn" onclick="toggleLegend()">Leyenda</button>
+    <button class="hdr-btn" onclick="resetView()">Centrar</button>
+  </div>
+</header>
+
+<div class="cw" id="cw"><div id="cv"><svg class="lines" id="lines"></svg></div></div>
+
+<div id="panel">
+  <div id="panel-resize"></div>
+  <div class="ph">
+    <div class="ph-type" id="pType"></div>
+    <div class="ph-title" id="pTitle"></div>
+    <div class="ph-meta">
+      <div id="pBadge"></div>
+      <div class="ph-fz">
+        <button class="ph-fz-btn" onclick="panelFz(-1)" title="Reducir texto">A−</button>
+        <span class="ph-fz-lbl" id="fzLbl">100%</span>
+        <button class="ph-fz-btn" onclick="panelFz(1)" title="Agrandar texto">A+</button>
+      </div>
+    </div>
+    <button class="ph-close" onclick="closePanel()">✕</button>
+  </div>
+  <div class="pb" id="pBody"></div>
+</div>
+
+<div id="legend">
+  <div class="lg-t">Tipos de nodo</div>
+  <div class="lg-r"><div class="lg-d" style="border-color:#0d9960;background:rgba(13,153,96,.12)"></div>Módulo del sistema</div>
+  <div class="lg-r"><div class="lg-d" style="border-color:#a07800;background:rgba(160,120,0,.1)"></div>Estado bisagra</div>
+  <div class="lg-r"><div class="lg-d" style="border-color:#0d9960;background:rgba(13,153,96,.06)"></div>Estado de control</div>
+  <div class="lg-r"><div class="lg-d" style="border-color:#5a20cc;background:rgba(90,32,204,.08)"></div>Estado de formalización</div>
+  <div class="lg-r"><div class="lg-d" style="border-color:#b85a00;background:rgba(184,90,0,.08)"></div>Estado de excepción</div>
+  <div class="lg-r"><div class="lg-d" style="border-color:#aaa"></div>Estado terminal</div>
+  <div class="lg-t" style="margin-top:10px">Flujos</div>
+  <div class="lg-r"><div class="lg-l" style="background:#0d9960"></div>Flujo principal</div>
+  <div class="lg-r"><div class="lg-l" style="background:#b85a00"></div>Flujo excepcional</div>
+  <div class="lg-r"><div class="lg-l" style="background:#aaa"></div>Terminal / desestimación</div>
+</div>
+
+<div class="zbar">
+  <button class="zb" onclick="zoom(-.12)">−</button>
+  <span class="zl" id="zl">68%</span>
+  <button class="zb" onclick="zoom(.12)">+</button>
+  <button class="zb" onclick="resetView()">⊙</button>
+</div>
+<div id="mm"><div class="mmvp" id="mmvp"></div></div>
+<div id="toast"></div>
+
+<script>
+const NODES=[
+{id:'hub',x:50,y:90,t:'module',label:'Hub de Canales',sub:'Validación de origen y canal habilitado',d:{type:'Módulo del sistema',ph:'mvp',desc:'Centraliza todas las vías registradas y habilitadas por el cliente para operar. Primera barrera de validación del flujo: ninguna instrucción puede avanzar si no proviene de un canal formalmente habilitado. Alimenta directamente la Capa 1 del Pre Trade Auditor.',raci:[{a:'Definir canales habilitados',r:'Back Office',ac:'Back Office',c:'Compliance',i:'Comercial'},{a:'Validar canal en cada instrucción',r:'Sistema',ac:'Back Office',c:'—',i:'Trader'},{a:'Bloquear canal no habilitado',r:'Sistema',ac:'Sistema',c:'Back Office',i:'Compliance'}],perm:[{c:'il-g',t:'Registrar y actualizar vías habilitadas por cliente'},{c:'il-g',t:'Validar trazabilidad de origen en cada instrucción (RF-012)'},{c:'il-n',t:'Consultar historial de canales por cliente'}],bloq:[{c:'il-r',t:'Habilitar canal sin aprobación formal de Back Office'},{c:'il-r',t:'Omitir validación de canal en cualquier instrucción'}],rules:[{code:'RF-012',desc:'Validación de canal habilitado. El sistema verifica que la instrucción provenga de una vía registrada y habilitada para ese cliente. Si falla, la orden no avanza.'}],trans:[{from:'Instrucción recibida',to:'Pre Blotter',cond:'Canal habilitado validado'},{from:'Instrucción recibida',to:'Bloqueada',cond:'Canal no habilitado o no registrado'}],us:[{code:'US-012',text:'Como Compliance quiero validar que el canal de recepción esté habilitado para ese cliente.'}],pending:[{text:'Definición del modelo de datos de canales: estructura, campos requeridos y fuente de verdad.'},{text:'Protocolo de alta/baja de canales: quién aprueba, con qué evidencia y en qué plazo.'}]}},
+
+{id:'preblotter',x:50,y:265,t:'module',label:'Pre Blotter',sub:'Puerta de captura inicial estructurada',d:{type:'Módulo del sistema',ph:'mvp',desc:'Puerta de captura común para Comercial y para órdenes directas de Cliente por canal autorizado. Clasifica la línea según su entidad operativa antes de pasarla al Blotter. El criterio de clasificación determina si la línea nace como intención comercial o como orden directamente procesable.',raci:[{a:'Cargar línea comercial preliminar',r:'Comercial',ac:'Comercial',c:'Sistema',i:'Back Office'},{a:'Cargar orden directa de cliente',r:'Cliente',ac:'Sistema',c:'Back Office',i:'Comercial'},{a:'Clasificar línea ingresada',r:'Sistema',ac:'Sistema',c:'Back Office',i:'Trader'}],perm:[{c:'il-g',t:'Registrar línea con datos iniciales y origen identificado'},{c:'il-g',t:'Clasificar como Pendiente de revisión (sin cierre definitivo)'},{c:'il-g',t:'Clasificar como Orden a procesar (entidad operativa suficiente)'},{c:'il-n',t:'Adjuntar soporte inicial o instrucción preliminar'}],bloq:[{c:'il-r',t:'Validar, compilar, enviar o concertar desde Pre Blotter'},{c:'il-r',t:'Omitir clasificación antes de pasar al Blotter'}],rules:[{code:'RF-001',desc:'Alta por origen comercial. Se registra con procedencia Comercial; puede nacer como intención, pedido o instrucción preliminar.'},{code:'RF-002',desc:'Alta por origen cliente. Canal autorizado verificado. La línea tiene entidad de orden a procesar desde el inicio.'},{code:'RF-005',desc:'Clasificación inicial de línea comercial. Sin cierre operativo definitivo → Pendiente de revisión.'},{code:'RF-006',desc:'Clasificación inicial como orden a procesar. Con entidad operativa suficiente → directo a Orden a procesar.'}],trans:[{from:'Sin estado (línea nueva)',to:'Ingresada',cond:'Carga por cualquier originante'},{from:'Ingresada',to:'Pendiente de revisión',cond:'Línea comercial sin cierre definitivo'},{from:'Ingresada',to:'Orden a procesar',cond:'Entidad operativa suficiente confirmada'}],us:[{code:'US-001',text:'Como Comercial quiero cargar una línea preliminar para registrar una intención o pedido y darle seguimiento.'},{code:'US-002',text:'Como Cliente quiero cargar una orden directa por canal autorizado para iniciar el proceso sin intervención previa.'},{code:'US-005',text:'Como sistema quiero clasificar una línea comercial como pendiente de revisión cuando no tenga cierre operativo definitivo.'},{code:'US-006',text:'Como sistema quiero clasificar una línea como orden a procesar cuando tenga entidad operativa suficiente.'}],pending:[{text:'Definición del modelo de datos: campos mínimos requeridos para cada tipo de origen.'},{text:'Criterio exacto de "entidad operativa suficiente": qué campos deben estar completos para clasificación automática.'}]}},
+
+{id:'blotter',x:285,y:265,t:'module',label:'Blotter',sub:'Registro operativo central y definitivo',d:{type:'Módulo del sistema — núcleo',ph:'mvp',desc:'Registro operativo definitivo donde todas las líneas adquieren tratamiento según su origen y avanzan por validación, formalización y ejecución. Concentrador central del flujo. Gestiona los 17 estados maestros y aplica las 46 reglas funcionales. Trader y Back Office pueden ajustar o sobrescribir líneas según cierre real.',raci:[{a:'Carga directa por Trader',r:'Trader',ac:'Trader',c:'Back Office',i:'Compliance'},{a:'Carga directa por Back Office',r:'Back Office',ac:'Back Office',c:'Trader',i:'Compliance'},{a:'Ajuste o sobrescritura de línea',r:'Trader / BO',ac:'Back Office',c:'Comercial',i:'Compliance'},{a:'Desestimación antes de validación',r:'Trader / BO',ac:'Back Office',c:'Compliance',i:'Comercial'}],perm:[{c:'il-g',t:'Carga directa por Trader o Back Office (RF-003, RF-004)'},{c:'il-g',t:'Ajuste, sobrescritura o desestimación de línea (RF-009, RF-010)'},{c:'il-g',t:'Visualización completa del historial y estado'},{c:'il-n',t:'Gestión de los 17 estados maestros del ciclo operativo'}],bloq:[{c:'il-r',t:'Reescritura material desde Validada en adelante (RF-042)'},{c:'il-r',t:'Edición del inbound registrado (RF-043)'},{c:'il-r',t:'Modificación sustancial de operación ejecutada (RF-044)'}],rules:[{code:'RF-003',desc:'Alta por Trader. Carga directa en Blotter sin pasar por Pre Blotter.'},{code:'RF-004',desc:'Alta por Back Office. Carga directa en Blotter.'},{code:'RF-009',desc:'Sobrescritura o ajuste de orden. Trader o BO pueden modificar datos operativos hasta Validada.'},{code:'RF-010',desc:'Desestimación antes de validación. Cierre como No operada antes de entrar al auditor.'},{code:'RF-042',desc:'Bloqueo de cambio material luego de validación. Desde Validada, ningún campo sustancial puede modificarse sin retroceder estado.'},{code:'RF-044',desc:'Inmutabilidad de operación ejecutada. Una vez operada, el contenido material no puede modificarse.'}],trans:[{from:'Pre Blotter',to:'Ingresada en Blotter',cond:'Línea clasificada y pasada'},{from:'Sin estado',to:'Ingresada',cond:'Carga directa por Trader o Back Office'}],us:[{code:'US-003',text:'Como Trader quiero poder cargar una orden directamente en Blotter.'},{code:'US-004',text:'Como Back Office quiero poder cargar una orden directamente en Blotter.'}],pending:[{text:'Modelo de datos completo: diccionario de campos, tipos y fuentes de verdad.'},{text:'Definición final de estados vs. flags: estado terminal vs. marca auxiliar de trazabilidad.'},{text:'Permisos por campo: quién puede editar qué campo, en qué estado y bajo qué condición.'}]}},
+
+{id:'pta_mod',x:905,y:170,t:'module',label:'Pre Trade Auditor',sub:'4 capas de validación secuencial',d:{type:'Módulo del sistema — control pre-operativo',ph:'mvp',desc:'Aplica cuatro capas de validación en secuencia. No puede omitirse en el flujo estándar. Si cualquier capa falla, la orden puede quedar Observada, derivarse a override, o desestimarse. El resultado consolidado determina si la orden avanza a Validada.',raci:[{a:'Capa 1 — Canal habilitado',r:'Sistema',ac:'Back Office',c:'Compliance',i:'Trader'},{a:'Capa 2 — Validación comercial/operativa',r:'Trader / BO',ac:'Back Office',c:'Compliance',i:'Comercial'},{a:'Capa 3 — Fondos o instrucción de pago',r:'Back Office',ac:'Back Office',c:'Compliance',i:'Trader'},{a:'Capa 4 — Perfil de inversor',r:'Compliance',ac:'Compliance',c:'Back Office',i:'Trader'},{a:'Consolidar resultado final',r:'Sistema',ac:'Compliance / BO',c:'Trader',i:'Comercial'}],perm:[{c:'il-g',t:'Capa 1: validar canal habilitado (RF-012)'},{c:'il-g',t:'Capa 2: validar consistencia comercial y operativa (RF-013)'},{c:'il-g',t:'Capa 3: validar fondos o instrucción de pago (RF-014)'},{c:'il-g',t:'Capa 4: validar perfil de inversor (RF-015)'},{c:'il-g',t:'Observar si detecta incumplimiento (RF-017)'},{c:'il-g',t:'Consolidar resultado → Validada u Observada (RF-016)'}],bloq:[{c:'il-r',t:'Omitir cualquier capa en el flujo estándar'},{c:'il-r',t:'Compilar o enviar sin resultado conforme'}],rules:[{code:'RF-011',desc:'Inicio del auditor. Se activa cuando la línea alcanza Orden a procesar.'},{code:'RF-012',desc:'Capa 1: canal de recepción habilitado para ese cliente.'},{code:'RF-013',desc:'Capa 2: consistencia comercial y operativa (especie, mercado, monto, contraparte).'},{code:'RF-014',desc:'Capa 3: fondos disponibles o instrucción de pago válida.'},{code:'RF-015',desc:'Capa 4: operación compatible con el perfil de inversor del cliente (DDJJ).'},{code:'RF-016',desc:'Consolidación. Todas conformes → Validada. Al menos una falla → Observada con detalle de la capa fallida.'}],trans:[{from:'Orden a procesar',to:'En pre trade auditor',cond:'Auditor iniciado (RF-011)'},{from:'En pre trade auditor',to:'Validada',cond:'Todas las capas conformes'},{from:'En pre trade auditor',to:'Observada',cond:'Al menos una capa con incumplimiento'}],us:[{code:'US-011',text:'Como sistema quiero iniciar el pre trade auditor cuando la línea sea una orden a procesar.'},{code:'US-012',text:'Como Compliance quiero validar que el canal esté habilitado para ese cliente.'},{code:'US-013',text:'Como Trader o Back Office quiero validar la consistencia comercial y operativa.'},{code:'US-014',text:'Como Back Office quiero validar fondos o instrucción de pago.'},{code:'US-015',text:'Como Compliance quiero validar que la operación sea compatible con el perfil de inversor.'},{code:'US-016',text:'Como sistema quiero consolidar el resultado del auditor para definir si queda validada u observada.'}],pending:[{text:'PEND: Lógica exacta de Capa 4 (perfil de inversor): umbrales, categorías y criterios de bloqueo.'},{text:'Fuente de verdad para fondos disponibles en Capa 3: sistema interno, integración externa o instrucción manual.'},{text:'¿Las 4 capas corren secuencialmente o pueden ejecutarse en paralelo?'}]}},
+
+{id:'nm',x:1305,y:170,t:'module',label:'Notification Manager',sub:'Comunicaciones formales con el cliente',d:{type:'Módulo del sistema — formalización',ph:'mvp',desc:'Centraliza templates, textos y comunicaciones del flujo. Gestiona el compilado formal, la DDJJ y la instrucción de pago. Registra el inbound del cliente y valida su autenticidad mediante SPF/DKIM/DMARC. El inbound registrado es inmutable.',raci:[{a:'Generar compilado formal',r:'Sistema / NM',ac:'Sistema',c:'Back Office',i:'Trader'},{a:'Enviar mail al cliente',r:'Sistema / NM',ac:'Sistema',c:'Back Office',i:'Compliance'},{a:'Registrar aprobación inbound',r:'Sistema',ac:'Sistema',c:'Back Office',i:'Trader'},{a:'Validar autenticidad del inbound',r:'Sistema',ac:'Back Office',c:'Compliance',i:'—'}],perm:[{c:'il-p',t:'Generar compilado con DDJJ e instrucción de pago (RF-023)'},{c:'il-p',t:'Recompilar si hay cambios menores autorizados (RF-024)'},{c:'il-p',t:'Enviar mail formal al cliente (RF-025)'},{c:'il-p',t:'Registrar aprobación inbound (RF-026)'},{c:'il-n',t:'Validar SPF/DKIM/DMARC del mail de respuesta'}],bloq:[{c:'il-r',t:'Editar el inbound una vez registrado (RF-043)'},{c:'il-r',t:'Registrar inbound sin validación de autenticidad'}],rules:[{code:'RF-023',desc:'Compilación de orden validada. Sistema genera versión formal con DDJJ e instrucción de pago.'},{code:'RF-024',desc:'Recompilación. Cambios menores aprobados permiten recompilar antes del envío sin retroceder estado.'},{code:'RF-025',desc:'Envío formal al cliente. NM despacha mail con compilado, DDJJ e instrucción de pago.'},{code:'RF-026',desc:'Registro de aprobación inbound. Sistema captura y registra la respuesta aprobatoria del cliente.'},{code:'RF-043',desc:'Inmutabilidad del inbound. Una vez registrado, no puede editarse ni sobreescribirse bajo ninguna circunstancia.'}],trans:[{from:'Compilada',to:'Enviada al cliente',cond:'NM despacha el compilado formal'},{from:'Enviada al cliente',to:'Aprobada inbound',cond:'Cliente responde aprobando y NM registra'},{from:'Enviada al cliente',to:'En ajuste / negociación',cond:'Cliente solicita cambios (RF-027)'},{from:'Enviada al cliente',to:'No operada / desestimada',cond:'Cliente rechaza o no responde (RF-028)'}],us:[{code:'US-023',text:'Como sistema quiero compilar una orden validada para generar la versión formal.'},{code:'US-025',text:'Como sistema o NM quiero enviar al cliente el compilado formal para su aprobación.'},{code:'US-026',text:'Como sistema quiero registrar la aprobación inbound del cliente para perfeccionar la orden.'}],pending:[{text:'Templates definitivos de compilado: estructura, campos obligatorios y formato de DDJJ.'},{text:'Mecanismo de validación SPF/DKIM/DMARC: integración técnica y manejo de fallas.'},{text:'Tiempo máximo de espera del inbound antes de activar recordatorio o cierre automático.'}]}},
+
+{id:'bill',x:2085,y:505,t:'module',label:'Bill',sub:'Cotejo post trade contra mercado',d:{type:'Módulo del sistema — control post-operativo',ph:'2',desc:'Coteja blotter formal, blotter no formal y archivos del mercado para detectar desvíos y diferencias. Opera después de la concertación. Si encuentra divergencias, puede disparar regularización posterior.',raci:[{a:'Ejecutar cotejo',r:'Bill / Sistema',ac:'Bill',c:'Back Office',i:'Trader'},{a:'Registrar resultado',r:'Back Office',ac:'Bill',c:'Compliance',i:'Trader'},{a:'Abrir regularización por desvío',r:'Back Office',ac:'Compliance',c:'Trader',i:'Comercial'}],perm:[{c:'il-g',t:'Cotejar blotter formal vs. archivos del mercado (RF-037)'},{c:'il-g',t:'Detectar y registrar desvíos y diferencias'},{c:'il-g',t:'Cerrar la operación post cotejo normal (RF-038)'},{c:'il-o',t:'Abrir regularización posterior si hay desvío (RF-039)'}],bloq:[{c:'il-r',t:'Cerrar con desvío detectado sin registro explícito'}],rules:[{code:'RF-037',desc:'Envío a cotejo Bill. Una vez operada, la línea se envía automáticamente.'},{code:'RF-038',desc:'Cierre normal post cotejo. Conforme → Cotejada → Cerrada.'},{code:'RF-039',desc:'Apertura de regularización. Desvíos → regularización en lugar de cierre directo.'}],trans:[{from:'Operada',to:'Cotejada',cond:'Cotejo conforme sin desvíos'},{from:'Cotejada',to:'Cerrada',cond:'Cierre normal aprobado'},{from:'Cotejada',to:'Regularización posterior',cond:'Desvíos que requieren recomposición'}],us:[{code:'US-037',text:'Como Bill o Back Office quiero cotejar una orden operada contra mercado para detectar desvíos.'}],pending:[{text:'Formato y protocolo de importación de archivos del mercado (BYMA, MAV, A3, Euroclear).'},{text:'Criterios de tolerancia: qué diferencia es aceptable y cuál dispara regularización.'}]}},
+
+{id:'nasdaq',x:2290,y:505,t:'module',label:'Nasdaq + Caja',sub:'Movimientos de títulos y validación',d:{type:'Módulo del sistema — circuito de títulos',ph:'2',desc:'Reconstruye movimientos de títulos liquidados al cierre con información segmentada. Valida contra Caja de Valores. Opera en paralelo al cotejo Bill. Tracking especie-por-especie ARS y USD.',raci:[{a:'Procesar archivo NASDAQ',r:'Sistema',ac:'Back Office',c:'—',i:'Trader'},{a:'Validar contra Caja de Valores',r:'Back Office',ac:'Back Office',c:'Compliance',i:'—'}],perm:[{c:'il-g',t:'Recomponer movimientos de títulos post-liquidación'},{c:'il-g',t:'Procesamiento diario al cierre con NASDAQ API'},{c:'il-g',t:'Validación posterior con Caja de Valores'},{c:'il-n',t:'Tracking especie-por-especie ARS/USD'}],bloq:[],rules:[],trans:[{from:'Operada',to:'Nasdaq + Caja',cond:'Flujo paralelo al cotejo Bill'}],us:[],pending:[{text:'PEND: Definición del segundo plazo de liquidación para bonos ARS (Contado Inmediato + TBD).'},{text:'Protocolo de integración NASDAQ API: formato, frecuencia y manejo de errores.'},{text:'Criterios de validación contra Caja: qué divergencias disparan alerta.'}]}},
+
+{id:'s_ing',x:485,y:170,t:'normal',label:'Ingresada',sub:'Alta inicial de línea',d:{type:'Estado — alta y clasificación',ph:'mvp',desc:'Alta inicial por cualquier originante. La orden existe en el sistema pero no tiene entidad operativa confirmada ni ha pasado ningún control. Editable en todos sus campos.',raci:[{a:'Crear línea',r:'C/COM/TR/BO',ac:'Originante o Sistema',c:'Sistema',i:'Resto'},{a:'Editar datos',r:'COM/TR/BO',ac:'Originante',c:'Sistema',i:'—'},{a:'Mover de estado',r:'SYS/TR/BO/COM',ac:'Sistema',c:'—',i:'—'}],perm:[{c:'il-g',t:'Crear, editar datos, adjuntar soporte'},{c:'il-g',t:'Clasificar como Pendiente de revisión o Orden a procesar'},{c:'il-n',t:'Visualizar por Cliente, Comercial, Trader, Back Office, Compliance'}],bloq:[{c:'il-r',t:'Validar, compilar, enviar ni operar'}],rules:[{code:'RF-001',desc:'Alta por origen comercial. Puede ser intención o pedido preliminar.'},{code:'RF-002',desc:'Alta por origen cliente. Canal autorizado verificado.'},{code:'RF-003',desc:'Alta por Trader. Carga directa en Blotter.'},{code:'RF-004',desc:'Alta por Back Office. Carga directa en Blotter.'}],trans:[{from:'Sin estado',to:'Ingresada',cond:'Crear línea por cualquier originante'},{from:'Ingresada',to:'Pendiente de revisión',cond:'Línea comercial sin cierre definitivo (RF-005)'},{from:'Ingresada',to:'Orden a procesar',cond:'Tiene entidad operativa suficiente (RF-006)'}],us:[{code:'US-001',text:'Como Comercial quiero cargar una línea preliminar para registrar una intención o pedido.'},{code:'US-002',text:'Como Cliente quiero cargar una orden directa por canal autorizado.'},{code:'US-003',text:'Como Trader quiero cargar una orden directamente en Blotter.'},{code:'US-004',text:'Como Back Office quiero cargar una orden directamente en Blotter.'}],pending:[]}},
+
+{id:'s_pend',x:485,y:335,t:'normal',label:'Pendiente de revisión',sub:'Línea comercial sin cierre definitivo',d:{type:'Estado — revisión y negociación',ph:'mvp',desc:'Línea originada por Comercial que todavía no tiene cierre operativo definitivo. Trader y Back Office trabajan la línea hasta confirmar condiciones. Puede ir a ajuste o directamente a Orden a procesar.',raci:[{a:'Completar la línea',r:'Trader / BO',ac:'Back Office',c:'Comercial',i:'Compliance'},{a:'Confirmar cierre operativo',r:'Trader / BO',ac:'Back Office',c:'Comercial',i:'Compliance'},{a:'Desestimar',r:'Trader / BO',ac:'Back Office',c:'Compliance',i:'Comercial'}],perm:[{c:'il-g',t:'Completar y trabajar la línea'},{c:'il-g',t:'Iniciar ajuste / negociación (RF-007)'},{c:'il-g',t:'Confirmar cierre → Orden a procesar (RF-008)'},{c:'il-o',t:'Desestimar → No operada (RF-010)'}],bloq:[{c:'il-r',t:'Validar, compilar, enviar ni operar'}],rules:[{code:'RF-005',desc:'Clasificación inicial de línea comercial sin cierre definitivo.'},{code:'RF-007',desc:'Pase a ajuste / negociación desde Pendiente de revisión.'},{code:'RF-008',desc:'Confirmación de cierre operativo → Orden a procesar.'}],trans:[{from:'Ingresada',to:'Pendiente de revisión',cond:'Clasificación inicial (RF-005)'},{from:'Pendiente de revisión',to:'En ajuste / negociación',cond:'Inicio de ajuste formal (RF-007)'},{from:'Pendiente de revisión',to:'Orden a procesar',cond:'Cierre confirmado (RF-008)'},{from:'Pendiente de revisión',to:'No operada',cond:'Desestimación explícita (RF-010)'}],us:[{code:'US-005',text:'Como sistema quiero clasificar una línea comercial como pendiente de revisión cuando no tenga cierre definitivo.'}],pending:[]}},
+
+{id:'s_ajuste',x:485,y:505,t:'normal',label:'En ajuste / negociación',sub:'Cierre de condiciones operativas',d:{type:'Estado — revisión y negociación',ph:'mvp',desc:'Espacio de trabajo para cerrar condiciones de la operación. También accesible si el cliente solicita cambios después del envío del compilado.',raci:[{a:'Editar condiciones',r:'Trader / BO',ac:'Back Office',c:'Comercial',i:'Compliance'},{a:'Confirmar cierre',r:'Trader / BO',ac:'Back Office',c:'Comercial',i:'Compliance'},{a:'Desestimar',r:'Trader / BO',ac:'Back Office',c:'Compliance',i:'Comercial'}],perm:[{c:'il-g',t:'Editar condiciones y subsanar datos preliminares'},{c:'il-g',t:'Confirmar cierre → Orden a procesar (RF-008)'},{c:'il-o',t:'Desestimar → No operada (RF-010)'}],bloq:[{c:'il-r',t:'Compilar, enviar ni operar desde este estado'}],rules:[{code:'RF-007',desc:'Pase a ajuste / negociación. Desde Pendiente o luego de cambios del cliente.'},{code:'RF-008',desc:'Confirmación de cierre operativo → Orden a procesar.'},{code:'RF-010',desc:'Desestimación antes de validación.'}],trans:[{from:'Pendiente de revisión',to:'En ajuste / negociación',cond:'Inicio de ajuste'},{from:'Enviada al cliente',to:'En ajuste / negociación',cond:'Cliente solicita cambios (RF-027)'},{from:'En ajuste / negociación',to:'Orden a procesar',cond:'Cierre confirmado'},{from:'En ajuste / negociación',to:'No operada',cond:'Desestimación'}],us:[],pending:[]}},
+
+{id:'s_proc',x:705,y:335,t:'bisagra',label:'Orden a procesar',sub:'Entidad operativa suficiente',d:{type:'Estado bisagra — punto de no retorno operativo',ph:'mvp',desc:'La línea tiene entidad operativa suficiente para ingresar al Pre Trade Auditor. Punto de inflexión entre el armado de la orden y el circuito de control. El flujo pasa a responsabilidad de Compliance y Back Office.',raci:[{a:'Ajustes menores previos al auditor',r:'Trader / BO',ac:'Back Office',c:'Compliance',i:'Comercial'},{a:'Observar la orden',r:'BO / CO',ac:'Back Office',c:'Trader',i:'Comercial'},{a:'Iniciar auditor',r:'Sistema / BO / CO',ac:'BO o CO según capa',c:'Trader',i:'Comercial'}],perm:[{c:'il-g',t:'Ajustes menores antes de entrar al auditor'},{c:'il-g',t:'Iniciar Pre Trade Auditor (RF-011)'},{c:'il-n',t:'Observar o validar la línea'}],bloq:[{c:'il-r',t:'Compilar, enviar ni operar desde este estado'}],rules:[{code:'RF-006',desc:'Clasificación como orden a procesar. Tiene todos los datos mínimos para el auditor.'},{code:'RF-011',desc:'Inicio del pre trade auditor. Se activa cuando la línea alcanza este estado.'}],trans:[{from:'Ingresada / Pendiente / Ajuste',to:'Orden a procesar',cond:'Entidad operativa confirmada'},{from:'Orden a procesar',to:'En pre trade auditor',cond:'Auditor iniciado (RF-011)'}],us:[{code:'US-006',text:'Como sistema quiero clasificar una línea como orden a procesar cuando tenga entidad operativa suficiente.'},{code:'US-011',text:'Como sistema quiero iniciar el pre trade auditor cuando la línea sea una orden a procesar.'}],pending:[]}},
+
+{id:'s_pta',x:905,y:335,t:'control',label:'En pre trade auditor',sub:'Corriendo las 4 capas de validación',d:{type:'Estado de control — auditoría pre-operativa activa',ph:'mvp',desc:'Las cuatro capas de validación están corriendo. Sistema y Compliance/BO pueden observar, subsanar, solicitar override o validar. El resultado determina si la orden avanza o queda Observada.',raci:[{a:'Capas 1 y 3 (canal, fondos)',r:'Sistema / BO',ac:'Back Office',c:'Compliance',i:'Trader'},{a:'Capa 2 (comercial/operativa)',r:'Trader / BO',ac:'Back Office',c:'Compliance',i:'—'},{a:'Capa 4 (perfil inversor)',r:'Compliance',ac:'Compliance',c:'Back Office',i:'Trader'},{a:'Emitir resultado',r:'Sistema',ac:'Compliance / BO',c:'Trader',i:'Comercial'}],perm:[{c:'il-g',t:'Observar si detecta incumplimiento (RF-017)'},{c:'il-g',t:'Subsanar observación y reingresar (RF-018, RF-019)'},{c:'il-o',t:'Solicitar override excepcional (RF-020)'},{c:'il-g',t:'Consolidar resultado → Validada u Observada (RF-016)'}],bloq:[{c:'il-r',t:'Compilar, enviar ni operar'},{c:'il-r',t:'Saltear alguna capa sin justificación registrada'}],rules:[{code:'RF-011',desc:'Inicio del auditor desde Orden a procesar.'},{code:'RF-016',desc:'Consolidación. Todas conformes → Validada. Al menos una falla → Observada.'},{code:'RF-017',desc:'Registro de observación. Documenta qué capa falló y por qué.'}],trans:[{from:'Orden a procesar',to:'En pre trade auditor',cond:'Auditor iniciado'},{from:'En pre trade auditor',to:'Validada',cond:'Todas las capas conformes'},{from:'En pre trade auditor',to:'Observada',cond:'Al menos una capa con incumplimiento'}],us:[{code:'US-011',text:'Como sistema quiero iniciar el pre trade auditor.'},{code:'US-016',text:'Como sistema quiero consolidar el resultado para definir si queda validada u observada.'}],pending:[]}},
+
+{id:'s_obs',x:905,y:510,t:'exception',label:'Observada',sub:'Desvío detectado en una o más capas',d:{type:'Estado de excepción — desvío en auditoría',ph:'2',desc:'Una o más capas del auditor detectaron incumplimiento. Tres salidas posibles: subsanar y reingresar al auditor, solicitar override con justificación, o desestimar la línea.',raci:[{a:'Editar campos de subsanación',r:'BO / CO / TR',ac:'BO o CO según capa',c:'Trader',i:'Comercial'},{a:'Solicitar override',r:'TR / BO / CO',ac:'BO o CO',c:'Compliance',i:'Comercial'},{a:'Conformar override',r:'TR + BO + CO',ac:'Compliance',c:'—',i:'Comercial'},{a:'Desestimar',r:'BO / CO',ac:'Compliance',c:'Trader',i:'Comercial'}],perm:[{c:'il-o',t:'Subsanar → reinicia auditoría (RF-018, RF-019)'},{c:'il-o',t:'Solicitar override excepcional (RF-020, RF-021)'},{c:'il-r',t:'Desestimar → No operada (RF-022)'},{c:'il-n',t:'Reformular condiciones y renegociar'}],bloq:[{c:'il-r',t:'Compilar, enviar ni operar directamente'},{c:'il-r',t:'Avanzar sin registrar la observación explícitamente'}],rules:[{code:'RF-017',desc:'Registro de observación. Documenta qué capa falló, por qué y quién.'},{code:'RF-018',desc:'Subsanación. Back Office o Compliance corrigen el dato problemático.'},{code:'RF-019',desc:'Validación posterior a subsanación. La orden reingresa desde la capa fallida.'},{code:'RF-020',desc:'Solicitud de override excepcional con justificación.'},{code:'RF-021',desc:'Conformación de override. Requiere conformidad de TR + BO + CO con trazabilidad completa.'},{code:'RF-022',desc:'Desestimación por observación no subsanada.'}],trans:[{from:'En pre trade auditor',to:'Observada',cond:'Al menos una capa con incumplimiento'},{from:'Observada',to:'En pre trade auditor',cond:'Subsanación aplicada (RF-018, RF-019)'},{from:'Observada',to:'Override aprobado',cond:'Override conformado por TR+BO+CO (RF-021)'},{from:'Observada',to:'No operada',cond:'Observación no subsanable (RF-022)'}],us:[{code:'US-017',text:'Como Compliance o Back Office quiero observar una orden cuando detecte un incumplimiento.'},{code:'US-018',text:'Como Trader o Back Office quiero subsanar una observación para reingresar al circuito.'},{code:'US-020',text:'Como Trader, BO o Compliance quiero solicitar un override para evaluar continuidad excepcional.'}],pending:[]}},
+
+{id:'s_ov',x:705,y:695,t:'exception',label:'Override aprobado',sub:'Continuidad excepcional documentada',d:{type:'Estado de excepción — mecanismo extraordinario',ph:'3',desc:'Se autorizó continuidad excepcional con trazabilidad completa y conformidad de TR + BO + CO. El override NO reemplaza la aprobación inbound del cliente en el flujo estándar. Es un mecanismo extraordinario y trazable, no un atajo operativo.',raci:[{a:'Completar fundamentos del override',r:'BO / CO',ac:'Compliance',c:'Trader',i:'Comercial'},{a:'Adjuntar evidencia',r:'BO / CO',ac:'Compliance',c:'—',i:'—'},{a:'Pasar a compilación',r:'BO / Sistema',ac:'Back Office',c:'Compliance',i:'Trader'}],perm:[{c:'il-o',t:'Completar fundamentos y evidencia (RF-021)'},{c:'il-o',t:'Pasar a compilación con trazabilidad registrada'},{c:'il-n',t:'Visualizar por Trader, BO, Compliance'}],bloq:[{c:'il-r',t:'RF-045: NO reemplaza la aprobación inbound del cliente'},{c:'il-r',t:'Avanzar sin documentación completa de los tres roles'},{c:'il-r',t:'Usar como mecanismo rutinario'}],rules:[{code:'RF-021',desc:'Conformación de override. Requiere conformidad explícita de TR + BO + CO con evidencia registrada.'},{code:'RF-045',desc:'El override no sustituye la aprobación inbound. En el flujo estándar, el inbound sigue siendo obligatorio.'}],trans:[{from:'Observada',to:'Override aprobado',cond:'Conformidad de TR + BO + CO (RF-021)'},{from:'Override aprobado',to:'Compilada',cond:'Documentación completa y aprobada'}],us:[{code:'US-020',text:'Como Trader, Back Office o Compliance quiero solicitar un override para una continuidad excepcional.'},{code:'US-021',text:'Como Trader, Back Office y Compliance quiero conformar un override con trazabilidad completa.'}],pending:[{text:'Flujo de aprobación del override: ¿secuencial o simultáneo? ¿Quórum mínimo?'},{text:'Formato del registro de evidencia: campos obligatorios, tipo de adjuntos aceptados.'}]}},
+
+{id:'s_val',x:1125,y:335,t:'control',label:'Validada',sub:'Auditoría conforme — restricciones crecen',d:{type:'Estado de control — inicio de restricciones fuertes',ph:'mvp',desc:'El Pre Trade Auditor consolidó resultado conforme en todas sus capas. Desde aquí comienzan las restricciones sobre edición material. El siguiente paso obligatorio es compilar.',raci:[{a:'Revisión final mínima',r:'Back Office',ac:'Back Office',c:'Compliance',i:'Trader'},{a:'Compilar',r:'Sistema',ac:'Sistema',c:'Back Office',i:'Trader'}],perm:[{c:'il-g',t:'Compilar la orden (RF-023)'},{c:'il-n',t:'Revisión final mínima sin cambios materiales'}],bloq:[{c:'il-r',t:'RF-042: bloqueo de cambio material sin retroceder estado'},{c:'il-r',t:'Enviar ni operar sin compilar primero'}],rules:[{code:'RF-016',desc:'Consolidación del auditor → Validada cuando todas las capas pasan.'},{code:'RF-042',desc:'Bloqueo de cambio material. Ningún campo sustancial puede modificarse desde aquí sin retroceder.'},{code:'RF-023',desc:'Compilación de orden validada.'}],trans:[{from:'En pre trade auditor',to:'Validada',cond:'Todas las capas conformes'},{from:'Validada',to:'Compilada',cond:'Compilación ejecutada (RF-023)'}],us:[{code:'US-042',text:'Como sistema quiero bloquear cambios materiales luego de la validación.'}],pending:[]}},
+
+{id:'s_comp',x:1305,y:335,t:'formal',label:'Compilada',sub:'Versión formal lista para envío',d:{type:'Estado de formalización — documento cerrado',ph:'mvp',desc:'La orden tiene su versión formal lista para enviar al cliente: compilado, DDJJ e instrucción de pago. Puede recompilarse por cambios menores autorizados, pero no puede editarse materialmente sin retroceder estado.',raci:[{a:'Revisar compilado',r:'Back Office',ac:'Back Office',c:'Compliance',i:'Trader'},{a:'Recompilar (cambios menores)',r:'Sistema / BO',ac:'Back Office',c:'Compliance',i:'—'},{a:'Enviar al cliente',r:'Sistema / NM',ac:'Sistema',c:'Back Office',i:'—'}],perm:[{c:'il-p',t:'Enviar al cliente (RF-025)'},{c:'il-p',t:'Recompilar por cambios menores autorizados (RF-024)'},{c:'il-n',t:'Revisión final por Back Office y Compliance'}],bloq:[{c:'il-r',t:'Editar materialmente sin retroceder estado'},{c:'il-r',t:'Operar sin pasar por envío e inbound'}],rules:[{code:'RF-023',desc:'Compilación. Sistema genera versión formal con DDJJ e instrucción de pago.'},{code:'RF-024',desc:'Recompilación. Cambios menores aprobados; no retrocede estado.'},{code:'RF-025',desc:'Envío formal al cliente vía NM.'}],trans:[{from:'Validada',to:'Compilada',cond:'Compilación ejecutada'},{from:'Override aprobado',to:'Compilada',cond:'Override documentado y aprobado'},{from:'Compilada',to:'Enviada al cliente',cond:'Envío por NM'}],us:[{code:'US-023',text:'Como sistema quiero compilar una orden validada para generar la versión formal a enviar al cliente.'}],pending:[]}},
+
+{id:'s_env',x:1505,y:335,t:'formal',label:'Enviada al cliente',sub:'Esperando aprobación inbound',d:{type:'Estado de formalización — en espera de respuesta',ph:'mvp',desc:'El compilado fue enviado al cliente. El sistema espera la respuesta formal. Puede reenviarse, el cliente puede pedir cambios (retorna a ajuste) o rechazar.',raci:[{a:'Reenviar si no hay respuesta',r:'Back Office',ac:'Back Office',c:'—',i:'Comercial'},{a:'Registrar respuesta del cliente',r:'Sistema / NM',ac:'Sistema',c:'Back Office',i:'—'},{a:'Gestionar rechazo o cambios',r:'Back Office',ac:'Back Office',c:'Compliance',i:'Comercial'}],perm:[{c:'il-p',t:'Esperar, reenviar y registrar respuesta'},{c:'il-p',t:'Registrar aprobación inbound (RF-026)'},{c:'il-o',t:'Gestionar cambios solicitados por el cliente (RF-027)'},{c:'il-o',t:'Registrar rechazo o falta de aprobación (RF-028)'}],bloq:[{c:'il-r',t:'Operar sin inbound válido en el flujo estándar'},{c:'il-r',t:'Editar el compilado ya enviado'}],rules:[{code:'RF-025',desc:'Envío formal. El compilado ya fue despachado por NM.'},{code:'RF-026',desc:'Registro de aprobación inbound del cliente.'},{code:'RF-027',desc:'Respuesta del cliente con cambios. La orden retorna a En ajuste / negociación.'},{code:'RF-028',desc:'Rechazo o falta de aprobación → No operada.'}],trans:[{from:'Compilada',to:'Enviada al cliente',cond:'NM despacha el compilado'},{from:'Enviada al cliente',to:'Aprobada inbound',cond:'Cliente responde aprobando'},{from:'Enviada al cliente',to:'En ajuste / negociación',cond:'Cliente solicita cambios (RF-027)'},{from:'Enviada al cliente',to:'No operada',cond:'Rechazo o no respuesta (RF-028)'}],us:[{code:'US-025',text:'Como sistema o NM quiero enviar al cliente el compilado formal para su aprobación.'}],pending:[{text:'Tiempo máximo de espera del inbound: ¿existe vencimiento automático?'}]}},
+
+{id:'s_inb',x:1705,y:335,t:'formal',label:'Aprobada inbound',sub:'Perfección formal de la orden',d:{type:'Estado de formalización — punto de perfección',ph:'mvp',desc:'El cliente respondió aprobando. Este punto perfecciona formalmente la orden. El inbound registrado es inmutable. El override previo no lo reemplaza.',raci:[{a:'Registrar evidencia del inbound',r:'Back Office',ac:'Sistema',c:'Back Office',i:'Trader'},{a:'Habilitar concertación',r:'Trader / Sistema',ac:'Sistema',c:'Back Office',i:'Compliance'}],perm:[{c:'il-p',t:'Registrar evidencia y habilitar concertación (RF-029)'},{c:'il-n',t:'Visualizar por todas las áreas'}],bloq:[{c:'il-r',t:'RF-043: editar o sobreescribir el inbound registrado'},{c:'il-r',t:'RF-045: el override previo no reemplaza este punto'}],rules:[{code:'RF-026',desc:'Registro de aprobación inbound.'},{code:'RF-029',desc:'Habilitación a concertar. Con inbound válido, la orden queda lista para ejecución.'},{code:'RF-043',desc:'Inmutabilidad del inbound. Una vez registrado, es inalterable.'},{code:'RF-045',desc:'El override no sustituye la aprobación del cliente.'}],trans:[{from:'Enviada al cliente',to:'Aprobada inbound',cond:'Cliente responde aprobando'},{from:'Aprobada inbound',to:'Habilitada a concertar',cond:'Habilitación confirmada (RF-029)'}],us:[{code:'US-026',text:'Como sistema quiero registrar la aprobación inbound para perfeccionar formalmente la orden.'},{code:'US-043',text:'Como sistema quiero impedir la edición directa de la aprobación inbound.'}],pending:[]}},
+
+{id:'s_hab',x:1905,y:335,t:'bisagra',label:'Habilitada a concertar',sub:'Lista para ejecución en mercado',d:{type:'Estado bisagra — puerta de ejecución',ph:'mvp',desc:'La orden cumplió todos los requisitos del flujo estándar y está lista para ejecución. Es el último punto antes de la operación.',raci:[{a:'Ejecutar en mercado',r:'Trader',ac:'Trader',c:'Back Office',i:'Compliance'},{a:'Registrar no ejecución',r:'Trader / BO',ac:'Trader',c:'Back Office',i:'Compliance'}],perm:[{c:'il-g',t:'Operar en mercado (RF-030)'},{c:'il-n',t:'Edición no sustancial por Trader o BO'},{c:'il-o',t:'Registrar no ejecución de orden habilitada (RF-031)'}],bloq:[{c:'il-r',t:'Modificaciones sustanciales de la orden'}],rules:[{code:'RF-029',desc:'Habilitación a concertar. Con inbound válido, la orden queda en este estado.'},{code:'RF-030',desc:'Concertación y carga en mercado. El Trader ejecuta.'},{code:'RF-031',desc:'No ejecución de orden habilitada. Registro de que la orden no fue concertada.'}],trans:[{from:'Aprobada inbound',to:'Habilitada a concertar',cond:'Habilitación confirmada'},{from:'Habilitada a concertar',to:'Operada',cond:'Trader ejecuta en mercado'},{from:'Habilitada a concertar',to:'No operada',cond:'No se ejecuta (RF-031)'}],us:[{code:'US-029',text:'Como Trader o sistema quiero habilitar una orden a concertar cuando esté aprobada inbound.'},{code:'US-030',text:'Como Trader quiero operar una orden habilitada para concertarla en mercado.'}],pending:[]}},
+
+{id:'s_op',x:2085,y:335,t:'control',label:'Operada',sub:'Concertada y cargada en mercado',d:{type:'Estado de control — ejecución concretada',ph:'mvp',desc:'La orden fue concertada y cargada en mercado. Inmutable en contenido material. Se envía automáticamente a cotejo Bill y en paralelo al circuito de títulos.',raci:[{a:'Registrar datos post trade',r:'Trader / BO',ac:'Trader',c:'Back Office',i:'Compliance'},{a:'Enviar a cotejo Bill',r:'Sistema',ac:'Back Office',c:'Bill',i:'Trader'},{a:'Abrir regularización',r:'Back Office',ac:'Compliance',c:'Trader',i:'Comercial'}],perm:[{c:'il-g',t:'Registrar datos post trade'},{c:'il-g',t:'Enviar a cotejo Bill (RF-037)'},{c:'il-o',t:'Abrir regularización posterior si corresponde'}],bloq:[{c:'il-r',t:'RF-044: reescritura material de la operación ejecutada'}],rules:[{code:'RF-030',desc:'Concertación y carga en mercado. Queda registrada como Operada.'},{code:'RF-037',desc:'Envío automático a cotejo Bill.'},{code:'RF-044',desc:'Inmutabilidad de operación ejecutada.'}],trans:[{from:'Habilitada a concertar',to:'Operada',cond:'Ejecución concretada por Trader'},{from:'Operada',to:'Cotejada (vía Bill)',cond:'Cotejo conforme'},{from:'Operada',to:'Regularización posterior',cond:'Desvío detectado o formalidad tardía'},{from:'Operada',to:'Nasdaq + Caja',cond:'Flujo paralelo de títulos'}],us:[{code:'US-030',text:'Como Trader quiero operar una orden habilitada para concertarla en mercado.'},{code:'US-044',text:'Como sistema quiero impedir la reescritura material de una orden operada.'}],pending:[]}},
+
+{id:'s_cot',x:2085,y:695,t:'control',label:'Cotejada',sub:'Post trade verificado contra mercado',d:{type:'Estado de control — validación post-operativa',ph:'2',desc:'La operación fue cotejada contra archivos del mercado por Bill. Cotejo conforme → Cerrada. Desvíos → Regularización posterior.',raci:[{a:'Ejecutar cotejo',r:'Bill / Sistema',ac:'Bill',c:'Back Office',i:'Trader'},{a:'Aprobar cierre post cotejo',r:'Back Office',ac:'Back Office',c:'Bill',i:'Compliance'},{a:'Abrir regularización',r:'Back Office',ac:'Compliance',c:'Trader',i:'—'}],perm:[{c:'il-g',t:'Adjuntar resultado del cotejo y cerrar (RF-038)'},{c:'il-o',t:'Abrir regularización posterior si hay desvíos (RF-039)'}],bloq:[{c:'il-r',t:'Cerrar con desvío conocido sin registro explícito'}],rules:[{code:'RF-038',desc:'Cierre normal post cotejo conforme → Cerrada.'},{code:'RF-039',desc:'Apertura de regularización. Desvíos → regularización en lugar de cierre directo.'}],trans:[{from:'Operada',to:'Cotejada',cond:'Cotejo ejecutado por Bill'},{from:'Cotejada',to:'Cerrada',cond:'Cotejo conforme y cierre aprobado'},{from:'Cotejada',to:'Regularización posterior',cond:'Desvíos detectados'}],us:[{code:'US-037',text:'Como Bill o Back Office quiero cotejar una orden operada contra mercado para detectar desvíos.'}],pending:[{text:'Criterios de tolerancia para desvíos: umbral que fuerza regularización.'}]}},
+
+{id:'s_cerrada',x:2290,y:695,t:'terminal',label:'Cerrada',sub:'Terminalidad administrativa del ciclo',d:{type:'Estado terminal — cierre definitivo',ph:'2',desc:'La orden completó su ciclo. Solo visualización y evidencia administrativa mínima. El cierre es terminal y bloqueante.',raci:[{a:'Confirmar cierre',r:'Back Office',ac:'Back Office',c:'Sistema',i:'Compliance'},{a:'Reabrir (excepcional)',r:'Usuario privilegiado',ac:'Compliance',c:'Back Office',i:'—'}],perm:[{c:'il-n',t:'Visualización y evidencia administrativa mínima'},{c:'il-o',t:'Reapertura excepcional con privilegio especial (RF-041)'}],bloq:[{c:'il-r',t:'RF-046: cualquier acción sustancial sobre la línea cerrada'},{c:'il-r',t:'Reapertura sin privilegio y sin justificación'}],rules:[{code:'RF-038',desc:'Cierre normal post cotejo conforme.'},{code:'RF-046',desc:'Cierre terminal bloqueante. No admite acciones sustanciales normales.'},{code:'RF-041',desc:'Reapertura excepcional. Solo con usuario de privilegio especial y trazabilidad completa.'}],trans:[{from:'Cotejada',to:'Cerrada',cond:'Cotejo conforme y cierre aprobado'},{from:'Regularización posterior',to:'Cerrada',cond:'Regularización completada'}],us:[{code:'US-041',text:'Como usuario con privilegio especial quiero reabrir una línea cerrada en casos extraordinarios.'}],pending:[{text:'Definición del perfil "usuario con privilegio especial": quién puede tenerlo, cómo se otorga y audita.'}]}},
+
+{id:'s_noop',x:1905,y:855,t:'terminal',label:'No operada / Desestimada',sub:'Cierre sin ejecución',d:{type:'Estado terminal — cierre sin operación',ph:'mvp',desc:'La orden no llegó a ejecutarse. Puede originarse en ajuste, resultado del auditor, observación no subsanada, rechazo del cliente, o no ejecución de orden habilitada.',raci:[{a:'Registrar cierre sin operación',r:'Back Office',ac:'Back Office',c:'Compliance',i:'Comercial'}],perm:[{c:'il-n',t:'Cierre administrativo con motivo registrado (RF-040)'},{c:'il-n',t:'Visualización del historial'}],bloq:[{c:'il-r',t:'Reabrir sin proceso formal de excepción'},{c:'il-r',t:'Omitir el motivo de desestimación'}],rules:[{code:'RF-010',desc:'Desestimación antes de validación.'},{code:'RF-022',desc:'Desestimación por observación no subsanada.'},{code:'RF-028',desc:'Rechazo o falta de aprobación del cliente.'},{code:'RF-031',desc:'No ejecución de orden habilitada.'},{code:'RF-040',desc:'Cierre de no operada. Registro administrativo.'}],trans:[{from:'En ajuste',to:'No operada',cond:'Desestimación explícita (RF-010)'},{from:'Observada',to:'No operada',cond:'Observación no subsanable (RF-022)'},{from:'Enviada al cliente',to:'No operada',cond:'Rechazo del cliente (RF-028)'},{from:'Habilitada a concertar',to:'No operada',cond:'No ejecución registrada (RF-031)'}],us:[{code:'US-040',text:'Como Back Office quiero cerrar una orden no operada para completar su terminalidad administrativa.'}],pending:[]}},
+
+{id:'s_reg',x:1105,y:855,t:'exception',label:'Regularización posterior',sub:'Recomposición tardía de trazabilidad',d:{type:'Estado de excepción — recomposición tardía',ph:'3',desc:'Aparece después o por fuera del flujo ideal para recomponer documentación, trazabilidad o formalidades tardías. Compliance es Accountable. Puede originarse desde cotejo con desvíos o desde la propia operación.',raci:[{a:'Completar datos y documentación',r:'Back Office',ac:'Compliance',c:'Trader',i:'Comercial'},{a:'Formalizar tardíamente',r:'Back Office',ac:'Compliance',c:'—',i:'—'},{a:'Override adicional si aplica',r:'TR / BO / CO',ac:'Compliance',c:'—',i:'—'},{a:'Cerrar regularización',r:'Back Office',ac:'Compliance',c:'Trader',i:'—'}],perm:[{c:'il-o',t:'Completar datos y formalizar tardíamente (RF-033, RF-034)'},{c:'il-o',t:'Registrar inbound tardío si no fue capturado (RF-035)'},{c:'il-o',t:'Marcar como operada dentro de regularización (RF-036)'},{c:'il-g',t:'Cerrar → Cerrada una vez completa la trazabilidad'}],bloq:[{c:'il-r',t:'Usar como flujo operativo habitual'},{c:'il-r',t:'Cerrar sin completar la documentación requerida'}],rules:[{code:'RF-032',desc:'Registro en circuito no formal. Líneas que se operaron fuera del flujo estándar.'},{code:'RF-033',desc:'Inicio de regularización posterior. BO o Sistema abren desde cotejo o desde operación.'},{code:'RF-034',desc:'Formalización tardía. Recomposición documental paso a paso.'},{code:'RF-035',desc:'Registro de inbound tardío. Si no fue capturado en tiempo real.'},{code:'RF-036',desc:'Marcado como operada dentro de regularización.'}],trans:[{from:'Operada',to:'Regularización posterior',cond:'Desvío o formalidad tardía detectada'},{from:'Cotejada',to:'Regularización posterior',cond:'Desvíos en el cotejo (RF-039)'},{from:'Regularización posterior',to:'Cerrada',cond:'Documentación completa y aprobada por Compliance'}],us:[{code:'US-033',text:'Como Back Office o Compliance quiero iniciar regularización posterior para recomponer documentación.'}],pending:[{text:'Cuándo es obligatorio abrir regularización vs. cuándo es opcional.'},{text:'Plazo máximo permitido para regularizar desde la fecha de la operación.'},{text:'Checklist de documentación mínima para dar por completa una regularización.'}]}},
+];
+
+const EDGES=[
+  {f:'hub',t:'preblotter',k:'main'},{f:'preblotter',t:'blotter',k:'main'},{f:'blotter',t:'s_ing',k:'main'},
+  {f:'s_ing',t:'s_pend',k:'norm'},{f:'s_ing',t:'s_proc',k:'norm'},
+  {f:'s_pend',t:'s_ajuste',k:'norm'},{f:'s_pend',t:'s_proc',k:'norm'},
+  {f:'s_ajuste',t:'s_proc',k:'norm'},{f:'s_ajuste',t:'s_noop',k:'term'},
+  {f:'s_proc',t:'pta_mod',k:'main'},{f:'pta_mod',t:'s_pta',k:'main'},
+  {f:'s_pta',t:'s_val',k:'main'},{f:'s_pta',t:'s_obs',k:'exc'},
+  {f:'s_obs',t:'s_pta',k:'exc'},{f:'s_obs',t:'s_ov',k:'exc'},{f:'s_obs',t:'s_noop',k:'term'},
+  {f:'s_ov',t:'s_comp',k:'exc'},
+  {f:'s_val',t:'s_comp',k:'main'},{f:'s_comp',t:'nm',k:'main'},{f:'nm',t:'s_env',k:'main'},
+  {f:'s_env',t:'s_inb',k:'main'},{f:'s_env',t:'s_ajuste',k:'exc'},{f:'s_env',t:'s_noop',k:'term'},
+  {f:'s_inb',t:'s_hab',k:'main'},{f:'s_hab',t:'s_op',k:'main'},{f:'s_hab',t:'s_noop',k:'term'},
+  {f:'s_op',t:'bill',k:'main'},{f:'bill',t:'s_cot',k:'main'},
+  {f:'s_cot',t:'s_cerrada',k:'main'},{f:'s_cot',t:'s_reg',k:'exc'},
+  {f:'s_op',t:'s_reg',k:'exc'},{f:'s_reg',t:'s_cerrada',k:'exc'},
+  {f:'s_op',t:'nasdaq',k:'norm'},
+];
+
+// ── RENDER NODES ──
+const cv=document.getElementById('cv');
+function nc(n){return{x:n.x+88,y:n.y+45}}
+NODES.forEach(n=>{
+  const el=document.createElement('div');
+  el.className='node';el.dataset.id=n.id;
+  el.style.left=n.x+'px';el.style.top=n.y+'px';
+  const tc='nt-'+n.t;
+  const tl={module:'módulo',bisagra:'bisagra',control:'control',formal:'formalización',exception:'excepción',terminal:'terminal',normal:'estado'}[n.t]||n.t;
+  el.innerHTML=`<div class="nb ${tc}"><div class="n-tag">${tl}</div><div class="n-name">${n.label}</div>${n.sub?`<div class="n-sub">${n.sub}</div>`:''}</div>`;
+  el.addEventListener('click',()=>openPanel(n));
+  cv.appendChild(el);
+});
+
+// ── RENDER EDGES ──
+const svg=document.getElementById('lines');
+EDGES.forEach(e=>{
+  const fn=NODES.find(n=>n.id===e.f),tn=NODES.find(n=>n.id===e.t);
+  if(!fn||!tn)return;
+  const fc=nc(fn),tc=nc(tn);
+  const mx=fc.x+(tc.x-fc.x)*.5,my=fc.y+(tc.y-fc.y)*.5-Math.abs(tc.x-fc.x)*.065;
+  const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+  p.setAttribute('d',`M${fc.x},${fc.y} Q${mx},${my} ${tc.x},${tc.y}`);
+  p.setAttribute('class','fl fl-'+e.k);
+  const ang=Math.atan2(tc.y-my,tc.x-mx);
+  const ax=tc.x-9*Math.cos(ang),ay=tc.y-9*Math.sin(ang);
+  const ar=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  ar.setAttribute('points',`${tc.x},${tc.y} ${ax-5*Math.cos(ang-.4)},${ay-5*Math.sin(ang-.4)} ${ax-5*Math.cos(ang+.4)},${ay-5*Math.sin(ang+.4)}`);
+  ar.setAttribute('class','at at-'+e.k);
+  svg.appendChild(p);svg.appendChild(ar);
+});
+
+// ── SECTION LABELS ──
+[{x:50,l:'Entrada'},{x:480,l:'Armado'},{x:700,l:'Auditor'},{x:1115,l:'Formalización'},{x:1895,l:'Ejecución'},{x:2075,l:'Post trade'}].forEach(s=>{
+  const el=document.createElement('div');el.className='sec-lbl';el.style.cssText=`left:${s.x}px;top:14px`;el.textContent=s.l;cv.appendChild(el);
+});
+[480,700,1115,1895,2075].forEach(x=>{
+  const el=document.createElement('div');el.className='sec-div';el.style.left=x+'px';cv.appendChild(el);
+});
+
+// ── PANEL ──
+function openPanel(n){
+  const d=n.d;
+  const phM={mvp:['MVP','ph-mvp'],'2':['Fase 2','ph-2'],'3':['Fase 3','ph-3']};
+  const[pl,pc]=phM[d.ph]||[d.ph,''];
+  document.getElementById('pType').textContent=d.type;
+  document.getElementById('pTitle').textContent=n.label;
+  document.getElementById('pBadge').innerHTML=`<span class="ph-badge ${pc}">${pl}</span>`;
+  let h='';
+  h+=`<div class="ps"><div class="ps-t">Descripción</div><div class="ps-desc">${d.desc}</div></div>`;
+  if(d.raci&&d.raci.length){
+    h+=`<div class="ps"><div class="ps-t">RACI por acción</div><table class="raci-table"><thead><tr><th>Acción</th><th>R</th><th>A</th><th>C</th><th>I</th></tr></thead><tbody>`;
+    d.raci.forEach(r=>{h+=`<tr><td>${r.a}</td><td><span class="rb rb-r">${r.r}</span></td><td><span class="rb rb-a">${r.ac}</span></td><td><span class="rb rb-c">${r.c}</span></td><td><span class="rb rb-i">${r.i}</span></td></tr>`});
+    h+=`</tbody></table></div>`;
+  }
+  const perm=d.perm||[],bloq=d.bloq||[];
+  if(perm.length||bloq.length){
+    h+=`<div class="ps"><div class="ps-t">Acciones permitidas y bloqueadas</div><ul class="item-list">`;
+    perm.forEach(i=>{h+=`<li class="${i.c}">✓ ${i.t}</li>`});
+    bloq.forEach(i=>{h+=`<li class="${i.c}">✕ ${i.t}</li>`});
+    h+=`</ul></div>`;
+  }
+  if(d.rules&&d.rules.length){
+    h+=`<div class="ps"><div class="ps-t">Reglas funcionales</div><ul class="item-list">`;
+    d.rules.forEach(r=>{h+=`<li class="il-bl"><strong>${r.code}</strong> — ${r.desc}</li>`});
+    h+=`</ul></div>`;
+  }
+  if(d.trans&&d.trans.length){
+    h+=`<div class="ps"><div class="ps-t">Transiciones formales</div>`;
+    d.trans.forEach(t=>{h+=`<div class="tr-row"><span class="tr-from">${t.from}</span><span class="tr-arr">→</span><div class="tr-body"><div class="tr-to">${t.to}</div><div class="tr-cond">${t.cond}</div></div></div>`});
+    h+=`</div>`;
+  }
+  if(d.us&&d.us.length){
+    h+=`<div class="ps"><div class="ps-t">Historias de usuario</div>`;
+    d.us.forEach(u=>{h+=`<div class="us-item"><div class="us-code">${u.code}</div><div class="us-text">${u.text}</div></div>`});
+    h+=`</div>`;
+  }
+  if(d.pending&&d.pending.length){
+    h+=`<div class="ps"><div class="ps-t">Pendientes abiertos</div>`;
+    d.pending.forEach(p=>{h+=`<div class="pend-item"><div class="pend-dot"></div><div class="pend-text">${p.text}</div></div>`});
+    h+=`</div>`;
+  }
+  document.getElementById('pBody').innerHTML=h;
+  document.getElementById('panel').classList.add('open');
+}
+function closePanel(){document.getElementById('panel').classList.remove('open')}
+
+// ── PANEL FONT SIZE & RESIZE ──
+const FZ_STEPS=[0.75,0.85,1,1.15,1.3,1.5];
+// base panel width at scale 1 — grows proportionally with font scale
+const PANEL_BASE=430;
+let fzIdx=2;
+
+function applyPanelWidth(){
+  const v=FZ_STEPS[fzIdx];
+  const w=Math.round(PANEL_BASE*Math.max(1,v));
+  const panel=document.getElementById('panel');
+  panel.style.setProperty('--pfs',v);
+  panel.style.width=w+'px';
+  document.getElementById('fzLbl').textContent=Math.round(v*100)+'%';
+}
+
+function panelFz(dir){
+  fzIdx=Math.max(0,Math.min(FZ_STEPS.length-1,fzIdx+dir));
+  applyPanelWidth();
+}
+
+// ── PANEL DRAG-RESIZE ──
+(function(){
+  const handle=document.getElementById('panel-resize');
+  const panel=document.getElementById('panel');
+  let resizing=false, startX=0, startW=0;
+
+  handle.addEventListener('mousedown',e=>{
+    resizing=true;
+    startX=e.clientX;
+    startW=panel.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.userSelect='none';
+    document.body.style.cursor='ew-resize';
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove',e=>{
+    if(!resizing)return;
+    const delta=startX-e.clientX; // dragging left = wider
+    const newW=Math.min(Math.max(320,startW+delta),window.innerWidth*0.85);
+    panel.style.width=newW+'px';
+  });
+
+  window.addEventListener('mouseup',()=>{
+    if(!resizing)return;
+    resizing=false;
+    handle.classList.remove('dragging');
+    document.body.style.userSelect='';
+    document.body.style.cursor='';
+  });
+})();
+
+// ── ZOOM & PAN ──
+let sc=0.68,tx=30,ty=30,drag=false,lx=0,ly=0;
+function applyT(){cv.style.transform=`translate(${tx}px,${ty}px) scale(${sc})`;document.getElementById('zl').textContent=Math.round(sc*100)+'%';updateMM()}
+function zoom(d){const w=document.getElementById('cw'),cx=w.clientWidth/2,cy=w.clientHeight/2,ns=Math.min(2,Math.max(.18,sc+d));tx=cx-(cx-tx)*ns/sc;ty=cy-(cy-ty)*ns/sc;sc=ns;applyT()}
+function resetView(){sc=0.68;tx=30;ty=30;applyT()}
+const cw=document.getElementById('cw');
+cw.addEventListener('mousedown',e=>{if(e.target.closest('.node'))return;drag=true;lx=e.clientX;ly=e.clientY});
+window.addEventListener('mousemove',e=>{if(!drag)return;tx+=e.clientX-lx;ty+=e.clientY-ly;lx=e.clientX;ly=e.clientY;applyT()});
+window.addEventListener('mouseup',()=>drag=false);
+cw.addEventListener('wheel',e=>{e.preventDefault();const r=cw.getBoundingClientRect(),cx=e.clientX-r.left,cy=e.clientY-r.top,ns=Math.min(2,Math.max(.18,sc+(e.deltaY>0?-.08:.08)));tx=cx-(cx-tx)*ns/sc;ty=cy-(cy-ty)*ns/sc;sc=ns;applyT()},{passive:false});
+let ltd=null;
+cw.addEventListener('touchstart',e=>{if(e.touches.length===1){drag=true;lx=e.touches[0].clientX;ly=e.touches[0].clientY}if(e.touches.length===2)ltd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)},{passive:true});
+cw.addEventListener('touchmove',e=>{if(e.touches.length===1&&drag){tx+=e.touches[0].clientX-lx;ty+=e.touches[0].clientY-ly;lx=e.touches[0].clientX;ly=e.touches[0].clientY;applyT()}if(e.touches.length===2&&ltd!==null){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);zoom((d-ltd)*.002);ltd=d}},{passive:true});
+cw.addEventListener('touchend',()=>{drag=false;ltd=null});
+function updateMM(){const w=document.getElementById('cw'),mW=160,mH=75,cW=2600,cH=1300,vp=document.getElementById('mmvp');vp.style.left=Math.max(0,-tx/sc*(mW/cW))+'px';vp.style.top=Math.max(0,-ty/sc*(mH/cH))+'px';vp.style.width=Math.min(mW,w.clientWidth/sc*(mW/cW))+'px';vp.style.height=Math.min(mH,w.clientHeight/sc*(mH/cH))+'px'}
+let lgOpen=false;
+function toggleLegend(){lgOpen=!lgOpen;document.getElementById('legend').classList.toggle('show',lgOpen)}
+window.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel();if(e.key==='+')zoom(.12);if(e.key==='-')zoom(-.12);if(e.key==='0')resetView()});
+let tT;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),5000)}
+applyT();
+setTimeout(()=>showToast('Tocá cualquier nodo para ver descripción, RACI, reglas, transiciones e historias de usuario'),700);
+</script>
+</body>
+</html>
